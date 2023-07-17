@@ -1,0 +1,76 @@
+package {{.LCName}}
+
+import (
+    "reflect"
+
+	"github.com/gromey/oxygen"
+)
+
+var (
+	cfg = oxygen.Config{
+	    StructOpener:                nil,
+		StructCloser:                nil,
+		UnwrapWhenDecoding:          false,
+		ValueSeparator:              nil,
+		RemoveSeparatorWhenDecoding: false,
+		// WARNING: DO NOT DELETE CONFIGURATIONS BELOW!
+		Name:        "{{.LCName}}",
+        Marshaller:  reflect.TypeOf((*Marshaller)(nil)).Elem(),
+        Unmarshaler: reflect.TypeOf((*Unmarshaler)(nil)).Elem(),
+	}
+	{{.LCName}} = oxygen.New[tag](&engine{}, cfg)
+)
+
+// Marshal encodes the value v and returns the encoded data.
+func Marshal(v any) ([]byte, error) {
+	return {{.LCName}}.Marshal(v)
+}
+
+// Unmarshal decodes the encoded data and stores the result in the value pointed to by v.
+func Unmarshal(b []byte, v any) error {
+	return {{.LCName}}.Unmarshal(b, v)
+}
+
+type engine struct {
+	oxygen.Default[tag]
+}
+
+type tag struct {
+    // TODO Add tag fields here if you need to!
+    // Example:
+    //		name string
+}
+
+// Parse gets a tagValue string, parses the tagValue into tag *tag,
+// returns a flag indicating that the field is skipped if it's empty.
+func (e *engine) Parse(tagValue string, tag *tag) (omit bool, err error) {
+    // TODO If you don't use tags, just remove this method!
+    // Example:
+    //		tag.name = tagValue
+    //		omit = true
+ 	return
+}
+
+// Encode takes encoded data and performs secondary encoding to {{.UCName}} format.
+func (e *engine) Encode(fieldName string, tag *tag, in []byte, out oxygen.Writer) (err error) {
+    // TODO If you need to format the data implement me otherwise just remove this method!
+    // Example:
+    //		_, err = out.WriteString(fieldName) // or out.WriteString(tag.name)
+    //		err = out.WriteByte(':')
+    //		_, err = out.Write(in)
+    return
+}
+
+// Decode takes the raw encoded data and performs a primary decode from {{.UCName}} format.
+func (e *engine) Decode(fieldName string, tag *tag, in []byte, out oxygen.Writer) (err error) {
+	// TODO Implement me!
+	// Because oxygen doesn't know anything about your format,
+	// you need to find the field value and performs a primary decode.
+	// If cfg.RemoveSeparatorWhenDecoding is true you must remove the field value from the input data.
+	// Example:
+	//		i := bytes.Index(in, cfg.ValueSeparator)
+	//		_, err = out.Write(in[:i])
+	//		copy(in, in[i:])
+
+	return
+}
