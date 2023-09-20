@@ -53,7 +53,8 @@ func (s *encodeState[T]) marshal(v any) {
 }
 
 func (s *encodeState[T]) reflectValue(v reflect.Value) error {
-	return s.cachedCoders(v.Type()).encoderFunc(s, v)
+	s.context.field.typ = v.Type()
+	return s.cachedCoders(s.context.field.typ).encoderFunc(s, v)
 }
 
 type encoderFunc[T any] func(*encodeState[T], reflect.Value) error
