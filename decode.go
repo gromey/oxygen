@@ -9,16 +9,27 @@ import (
 	"sync"
 )
 
+// Proper usage of a sync.Pool requires each entry to have approximately
+// the same memory cost. To obtain this property when the stored type
+// contains a variably-sized buffer, we add a hard limit on the maximum buffer
+// to place back in the pool.
+//
+// See https://golang.org/issue/23199
+const maxSize = 1 << 16 // 64KiB
+
 const unmarshalError = "decode data into"
 
 // Unmarshal decodes the encoded data and stores the result in the value pointed to by v.
 // If v is nil or not a pointer, Unmarshal returns a decoder error.
 func (e *engine[T]) Unmarshal(data []byte, v any) (err error) {
-	s := e.newDecodeState()
-	defer decodeStatePool.Put(s)
+	if t := reflect.ValueOf(v).Kind(); t != reflect.Pointer {
+		return fmt.Errorf("%s: Unmarshal(non-pointer %s)", e.name, t)
+	}
 
-	s.data = make([]byte, len(data))
-	copy(s.data, data)
+	s := e.newDecodeState()
+	defer putDecodeState(s)
+
+	s.data = append(s.data, data...)
 
 	s.unmarshal(v)
 	return s.err
@@ -37,12 +48,20 @@ func (e *engine[T]) newDecodeState() *decodeState[T] {
 	if p := decodeStatePool.Get(); p != nil {
 		s := p.(*decodeState[T])
 		s.err = nil
+		s.Reset()
+		s.data = s.data[:0]
 		return s
 	}
 
-	s := &decodeState[T]{engine: e, Buffer: new(bytes.Buffer)}
+	s := &decodeState[T]{engine: e, Buffer: new(bytes.Buffer), data: make([]byte, 0, 512)}
 	s.field = new(field[T])
 	return s
+}
+
+func putDecodeState[T any](s *decodeState[T]) {
+	if cap(s.data) <= maxSize {
+		decodeStatePool.Put(s)
+	}
 }
 
 func (s *decodeState[T]) unmarshal(v any) {
@@ -54,7 +73,8 @@ func (s *decodeState[T]) unmarshal(v any) {
 }
 
 func (s *decodeState[T]) reflectValue(v reflect.Value) error {
-	return s.cachedCoders(v.Type()).decoderFunc(s, v)
+	s.context.field.typ = v.Type()
+	return s.cachedCoders(s.context.field.typ).decoderFunc(s, v)
 }
 
 type decoderFunc[T any] func(*decodeState[T], reflect.Value) error
