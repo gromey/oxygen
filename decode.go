@@ -67,14 +67,16 @@ func putDecodeState[T any](s *decodeState[T]) {
 func (s *decodeState[T]) unmarshal(v any) {
 	if err := s.reflectValue(reflect.ValueOf(v)); err != nil {
 		if !errors.Is(err, errExist) {
+			if s.field.typ == nil {
+				s.field.typ = unPoint(reflect.TypeOf(v))
+			}
 			s.setError(s.name, unmarshalError, err)
 		}
 	}
 }
 
 func (s *decodeState[T]) reflectValue(v reflect.Value) error {
-	s.context.field.typ = v.Type()
-	return s.cachedCoders(s.context.field.typ).decoderFunc(s, v)
+	return s.cachedCoders(v.Type()).decoderFunc(s, v)
 }
 
 type decoderFunc[T any] func(*decodeState[T], reflect.Value) error
@@ -90,8 +92,6 @@ func (s *decodeState[T]) removePrefixBytes(b []byte) error {
 
 func (f *structFields[T]) decode(s *decodeState[T], v reflect.Value, unwrap bool) (err error) {
 	var sep bool
-
-	s.structName = v.Type().Name()
 
 	if unwrap {
 		if err = s.removePrefixBytes(s.structOpener); err != nil {
@@ -129,6 +129,7 @@ func (f *structFields[T]) decode(s *decodeState[T], v reflect.Value, unwrap bool
 			continue
 		}
 
+		s.structName = v.Type().Name()
 		if err = s.field.functions.decoderFunc(s, rv); err != nil {
 			return
 		}

@@ -33,8 +33,8 @@ var encodeStatePool sync.Pool
 func (e *engine[T]) newEncodeState() *encodeState[T] {
 	if p := encodeStatePool.Get(); p != nil {
 		s := p.(*encodeState[T])
-		s.Reset()
 		s.err = nil
+		s.Reset()
 		return s
 	}
 
@@ -46,6 +46,9 @@ func (e *engine[T]) newEncodeState() *encodeState[T] {
 func (s *encodeState[T]) marshal(v any) {
 	if err := s.reflectValue(reflect.ValueOf(v)); err != nil {
 		if !errors.Is(err, errExist) {
+			if s.field.typ == nil {
+				s.field.typ = unPoint(reflect.TypeOf(v))
+			}
 			s.setError(s.name, marshalError, err)
 		}
 		s.Reset()
@@ -53,13 +56,15 @@ func (s *encodeState[T]) marshal(v any) {
 }
 
 func (s *encodeState[T]) reflectValue(v reflect.Value) error {
-	s.context.field.typ = v.Type()
-	return s.cachedCoders(s.context.field.typ).encoderFunc(s, v)
+	return s.cachedCoders(v.Type()).encoderFunc(s, v)
 }
 
 type encoderFunc[T any] func(*encodeState[T], reflect.Value) error
 
 func valueFromPtr(v reflect.Value) reflect.Value {
+	if v.Kind() != reflect.Pointer {
+		return v
+	}
 	if v.IsNil() {
 		v = reflect.New(v.Type().Elem())
 	}
@@ -68,8 +73,6 @@ func valueFromPtr(v reflect.Value) reflect.Value {
 
 func (f *structFields[T]) encode(s *encodeState[T], v reflect.Value, wrap bool) (err error) {
 	var sep bool
-
-	s.structName = v.Type().Name()
 
 	if wrap {
 		s.Write(s.structOpener)
@@ -95,6 +98,7 @@ func (f *structFields[T]) encode(s *encodeState[T], v reflect.Value, wrap bool) 
 			continue
 		}
 
+		s.structName = v.Type().Name()
 		if err = s.field.functions.encoderFunc(s, rv); err != nil {
 			return
 		}
@@ -147,8 +151,7 @@ func floatEncoder[T any](s *encodeState[T], v reflect.Value) error {
 
 func interfaceEncoder[T any](s *encodeState[T], v reflect.Value) error {
 	if v.IsNil() {
-		s.err = ErrNilInterface
-		return errExist
+		return nil
 	}
 	return s.reflectValue(v.Elem())
 }

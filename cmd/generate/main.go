@@ -72,7 +72,7 @@ func createFileByTemplate(tempPath, filename string, data interface{}) error {
 	if file, err = os.Create(filename); err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	return temp.Execute(file, data)
 }
