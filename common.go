@@ -68,3 +68,10 @@ func unwrapErr(err error) error {
 	}
 	return err
 }
+
+func unPoint(t reflect.Type) reflect.Type {
+	if t.Kind() != reflect.Pointer {
+		return t
+	}
+	return unPoint(t.Elem())
+}
