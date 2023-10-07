@@ -15,146 +15,182 @@ func equal(t *testing.T, exp, got interface{}) {
 
 func Test_bitSize(t *testing.T) {
 	var tests = []struct {
+		name string
+
 		reflectKind reflect.Kind
 		expect      int
 	}{
 		{
+			name:        "bool",
 			reflectKind: reflect.Bool,
 			expect:      0,
 		},
 		{
+			name:        "int8",
 			reflectKind: reflect.Int8,
 			expect:      8,
 		},
 		{
+			name:        "int16",
 			reflectKind: reflect.Int16,
 			expect:      16,
 		},
 		{
+			name:        "int32",
 			reflectKind: reflect.Int32,
 			expect:      32,
 		},
 		{
+			name:        "int64",
 			reflectKind: reflect.Int64,
 			expect:      64,
 		},
 		{
+			name:        "uint8",
 			reflectKind: reflect.Uint8,
 			expect:      8,
 		},
 		{
+			name:        "uint16",
 			reflectKind: reflect.Uint16,
 			expect:      16,
 		},
 		{
+			name:        "uint32",
 			reflectKind: reflect.Uint32,
 			expect:      32,
 		},
 		{
+			name:        "uint64",
 			reflectKind: reflect.Uint64,
 			expect:      64,
 		},
 		{
+			name:        "int",
 			reflectKind: reflect.Int,
 			expect:      bits.UintSize,
 		},
 		{
+			name:        "uint",
 			reflectKind: reflect.Uint,
 			expect:      bits.UintSize,
 		},
 		{
+			name:        "uintptr",
 			reflectKind: reflect.Uintptr,
 			expect:      bits.UintSize,
 		},
 	}
+
 	for _, tt := range tests {
-		i := bitSize(tt.reflectKind)
-		equal(t, tt.expect, i)
+		t.Run(tt.name, func(t *testing.T) {
+			equal(t, tt.expect, bitSize(tt.reflectKind))
+		})
 	}
 }
 
 func Test_isEmptyValue(t *testing.T) {
-	var j any
+	var a any
+	a = 77
 	var b any
-	b = 77
+
 	var tests = []struct {
+		name   string
 		value  any
 		expect bool
 	}{
 		{
+			name:   "no empty bool",
 			value:  true,
 			expect: false,
 		},
 		{
+			name:   "empty bool",
 			value:  false,
 			expect: true,
 		},
 		{
+			name:   "no empty int",
 			value:  1,
 			expect: false,
 		},
 		{
+			name:   "empty int",
 			value:  0,
 			expect: true,
 		},
 		{
+			name:   "np empty float",
 			value:  1.1,
 			expect: false,
 		},
 		{
+			name:   "empty float",
 			value:  0.0,
 			expect: true,
 		},
 		{
+			name:   "no empty string",
 			value:  "a",
 			expect: false,
 		},
 		{
+			name:   "empty string",
 			value:  "",
 			expect: true,
 		},
 		{
+			name:   "no empty pointer",
 			value:  &struct{}{},
 			expect: false,
 		},
 		{
+			name:   "empty pointer",
 			value:  (*struct{})(nil),
 			expect: true,
 		},
 		{
+			name:   "no empty slice",
 			value:  []int{1},
 			expect: false,
 		},
 		{
+			name:   "empty slice",
 			value:  []int{},
 			expect: true,
 		},
 		{
-			value:  b,
+			name:   "no empty interface",
+			value:  a,
 			expect: false,
 		},
 		{
-			value:  j,
+			name:   "empty interface",
+			value:  b,
 			expect: true,
 		},
 	}
+
 	for _, tt := range tests {
-		b := isEmptyValue(reflect.ValueOf(tt.value))
-		equal(t, tt.expect, b)
+		t.Run(tt.name, func(t *testing.T) {
+			equal(t, tt.expect, isEmptyValue(reflect.ValueOf(tt.value)))
+		})
 	}
 }
 
 type empty struct{}
 
 func Test_contextSetError(t *testing.T) {
-	name := "tagName"
-	str := "marshal/unmarshal"
+	tagName := "tagName"
+	str := "set/get"
 
 	var tests = []struct {
+		name   string
 		ctx    context[empty]
 		expect error
 	}{
 		{
+			name: "error for structs",
 			ctx: context[empty]{
 				structName: "structName",
 				field: &field[empty]{
@@ -163,26 +199,30 @@ func Test_contextSetError(t *testing.T) {
 				},
 				err: ErrNotSupportType,
 			},
-			expect: errors.New("tagName: cannot marshal/unmarshal Go struct field structName.fieldName of type bool: cannot support type"),
+			expect: errors.New("tagName: cannot set/get Go struct field structName.fieldName of type bool: cannot support type"),
 		},
 		{
+			name: "error for simple types",
 			ctx: context[empty]{
 				structName: "",
 				field: &field[empty]{
-					name: "fieldName",
-					typ:  reflect.TypeOf(true),
+					typ: reflect.TypeOf(true),
 				},
 				err: ErrNotSupportType,
 			},
-			expect: errors.New("tagName: cannot marshal/unmarshal Go value of type bool: cannot support type"),
+			expect: errors.New("tagName: cannot set/get Go value of type bool: cannot support type"),
 		},
 	}
+
 	for _, tt := range tests {
-		tt.ctx.setError(name, str, tt.ctx.err)
-		if tt.expect != nil {
-			equal(t, tt.expect.Error(), tt.ctx.err.Error())
-		} else {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.ctx.setError(tagName, str, tt.ctx.err)
+			if tt.expect != nil {
+				equal(t, tt.expect.Error(), tt.ctx.err.Error())
+				return
+			}
 			equal(t, nil, tt.ctx.err)
-		}
+		})
+
 	}
 }

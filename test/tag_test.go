@@ -182,13 +182,12 @@ var npt = nestedPtrType{
 }
 
 func TestMarshal(t *testing.T) {
-	type testS struct {
+	tests := []struct {
 		name   string
 		input  any
 		expect []byte
 		err    error
-	}
-	tests := []testS{
+	}{
 		{
 			name:   "struct with base types",
 			input:  sbt,
@@ -250,14 +249,13 @@ func TestMarshal(t *testing.T) {
 }
 
 func TestUnmarshal(t *testing.T) {
-	type testS struct {
+	tests := []struct {
 		name   string
 		input  []byte
 		output any
 		expect any
 		err    error
-	}
-	tests := []testS{
+	}{
 		{
 			name:   "part of fields struct with base types",
 			input:  []byte("{true ,0099,0098,0097,0096}"),
