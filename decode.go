@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"strconv"
 	"sync"
+	"unicode"
 )
 
 // Proper usage of a sync.Pool requires each entry to have approximately
@@ -100,7 +101,7 @@ func (f *structFields[T]) decode(s *decodeState[T], v reflect.Value, unwrap bool
 	}
 
 	for _, s.field = range *f {
-		if s.data = bytes.TrimSpace(s.data); s.data == nil || unwrap && bytes.HasPrefix(s.data, s.structCloser) {
+		if s.data = bytes.TrimRightFunc(s.data, unicode.IsSpace); s.data == nil || unwrap && bytes.HasPrefix(s.data, s.structCloser) {
 			break
 		}
 
