@@ -10,14 +10,14 @@
 `oxygen` can be installed like any other Go library through `go get`:
 
 ```console
-$ go get github.com/gromey/oxygen
+go get github.com/gromey/oxygen
 ```
 
 Or, if you are already using
 [Go Modules](https://github.com/golang/go/wiki/Modules), you may specify a version number as well:
 
 ```console
-$ go get github.com/gromey/oxygen@latest
+go get github.com/gromey/oxygen@latest
 ```
 
 ## Getting Started
@@ -25,7 +25,7 @@ $ go get github.com/gromey/oxygen@latest
 After you get the library, you must generate your type using the following command:
 
 ```console
-$ go run github.com/gromey/oxygen/cmd/generate -n=name
+go run github.com/gromey/oxygen/cmd/generate -n=name
 ```
 
 In this command, you must specify a name of your new formatter. The name must contain only letters and be as simple as possible.
