@@ -101,7 +101,7 @@ func (f *structFields[T]) decode(s *decodeState[T], v reflect.Value, unwrap bool
 	}
 
 	for _, s.field = range *f {
-		if s.data = bytes.TrimRightFunc(s.data, unicode.IsSpace); s.data == nil || unwrap && bytes.HasPrefix(s.data, s.structCloser) {
+		if s.data = bytes.TrimRightFunc(s.data, unicode.IsSpace); len(s.data) == 0 || unwrap && bytes.HasPrefix(s.data, s.structCloser) {
 			break
 		}
 
