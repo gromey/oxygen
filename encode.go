@@ -13,12 +13,15 @@ const marshalError = "encode data from"
 
 // Marshal encodes the value v and returns the encoded data.
 // If v is nil, Marshal returns an encoder error.
-func (e *engine[T]) Marshal(v any) (out []byte, err error) {
+func (e *engine[T]) Marshal(v any) ([]byte, error) {
 	s := e.newEncodeState()
 	defer encodeStatePool.Put(s)
 
-	s.marshal(v)
-	return s.Bytes(), s.err
+	if s.marshal(v); s.err != nil {
+		return nil, s.err
+	}
+
+	return append([]byte(nil), s.Bytes()...), nil
 }
 
 type encodeState[T any] struct {

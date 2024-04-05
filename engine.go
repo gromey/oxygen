@@ -20,7 +20,7 @@ type Writer interface {
 }
 
 // Tag describes what functions an entity should implement to use when creating a new Engine entity.
-// The entity must include a oxygen.Default that implements following default Parse method,
+// The entity must include the oxygen.Default that implements following default Parse method,
 // so it may not implement this method.
 type Tag[T any] interface {
 	// Parse gets a tagValue string, parses the tagValue into tag *T,

@@ -22,7 +22,7 @@ const unmarshalError = "decode data into"
 
 // Unmarshal decodes the encoded data and stores the result in the value pointed to by v.
 // If v is nil or not a pointer, Unmarshal returns a decoder error.
-func (e *engine[T]) Unmarshal(data []byte, v any) (err error) {
+func (e *engine[T]) Unmarshal(data []byte, v any) error {
 	if t := reflect.ValueOf(v).Kind(); t != reflect.Pointer {
 		return fmt.Errorf("%s: Unmarshal(non-pointer %s)", e.name, t)
 	}
