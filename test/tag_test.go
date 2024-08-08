@@ -360,3 +360,13 @@ func TestUnmarshal(t *testing.T) {
 		})
 	}
 }
+
+func BenchmarkPrimeNumbers(b *testing.B) {
+	input := []byte("{{Sub test??,------test},{Sub test??,------test}}")
+	output := new(structFields)
+	for i := 0; i < b.N; i++ {
+		if err := test.Unmarshal(input, output); err != nil {
+			panic(err)
+		}
+	}
+}

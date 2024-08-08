@@ -137,6 +137,8 @@ func (f *structFields[T]) decode(s *decodeState[T], v reflect.Value, unwrap bool
 	}
 
 	if unwrap {
+		i := bytes.Index(s.data, s.structCloser)
+		s.data = s.data[i:]
 		if err = s.removePrefixBytes(s.structCloser); err != nil {
 			return
 		}
@@ -274,7 +276,7 @@ func stringDecoder[T any](s *decodeState[T], v reflect.Value) error {
 
 func structDecoder[T any](s *decodeState[T], v reflect.Value) error {
 	f := s.cachedFields(v.Type())
-	return f.decode(s, v, s.wrap)
+	return f.decode(s, v, s.removeWrapper)
 }
 
 func unsupportedTypeDecoder[T any](s *decodeState[T], _ reflect.Value) error {

@@ -70,7 +70,8 @@ func New[T any](tag Tag[T], cfg Config) Engine {
 	return &engine[T]{
 		Tag:             tag,
 		name:            cfg.Name,
-		wrap:            (len(cfg.StructOpener) != 0 || len(cfg.StructCloser) != 0) && cfg.UnwrapWhenDecoding,
+		wrap:            len(cfg.StructOpener) != 0 || len(cfg.StructCloser) != 0,
+		removeWrapper:   (len(cfg.StructOpener) != 0 || len(cfg.StructCloser) != 0) && cfg.UnwrapWhenDecoding,
 		separate:        len(cfg.ValueSeparator) != 0,
 		removeSeparator: len(cfg.ValueSeparator) != 0 && cfg.RemoveSeparatorWhenDecoding,
 		structOpener:    cfg.StructOpener,
@@ -83,10 +84,10 @@ func New[T any](tag Tag[T], cfg Config) Engine {
 
 type engine[T any] struct {
 	Tag[T]
-	name                                       string
-	wrap, separate, removeSeparator            bool
-	structOpener, structCloser, valueSeparator []byte
-	marshaller, unmarshaler                    reflect.Type
+	name                                           string
+	wrap, removeWrapper, separate, removeSeparator bool
+	structOpener, structCloser, valueSeparator     []byte
+	marshaller, unmarshaler                        reflect.Type
 }
 
 type coders[T any] struct {
