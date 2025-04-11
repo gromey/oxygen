@@ -47,6 +47,7 @@ var decodeStatePool sync.Pool
 func (e *engine[T]) newDecodeState() *decodeState[T] {
 	if p := decodeStatePool.Get(); p != nil {
 		s := p.(*decodeState[T])
+		s.field = new(field[T])
 		s.err = nil
 		s.Reset()
 		s.data = s.data[:0]
