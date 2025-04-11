@@ -1,24 +1,26 @@
-# oxygen
+# Oxygen
 
 ![https://img.shields.io/github/v/tag/gromey/oxygen](https://img.shields.io/github/v/tag/gromey/oxygen)
 ![https://img.shields.io/github/license/gromey/oxygen](https://img.shields.io/github/license/gromey/oxygen)
+
+## Overview
 
 `oxygen` is a library designed to create custom formatters like `JSON`, `XML`.
 
 ## Installation
 
-`oxygen` can be installed like any other Go library through `go get`:
+To use the `oxygen` package, install it using:
 
-```console
-go get github.com/gromey/oxygen@latest
+```sh
+  go get github.com/gromey/oxygen@latest
 ```
 
 ## Getting Started
 
 After you get the library, you must generate your type using the following command:
 
-```console
-go run github.com/gromey/oxygen/cmd/generate -n=name
+```sh
+  go run github.com/gromey/oxygen/cmd/generate -n=name
 ```
 
 In this command, you must specify a name of your new formatter. The name must contain only letters and be as simple as possible.
