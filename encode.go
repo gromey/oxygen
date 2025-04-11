@@ -36,6 +36,7 @@ var encodeStatePool sync.Pool
 func (e *engine[T]) newEncodeState() *encodeState[T] {
 	if p := encodeStatePool.Get(); p != nil {
 		s := p.(*encodeState[T])
+		s.field = new(field[T])
 		s.err = nil
 		s.Reset()
 		return s
