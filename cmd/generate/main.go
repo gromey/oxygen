@@ -64,12 +64,20 @@ func createFileByTemplate(tempPath, filename string, data interface{}) error {
 		return err
 	}
 
-	if err = os.MkdirAll(filepath.Dir(filename), 0770); err != nil {
+	dir := filepath.Dir(filename)
+
+	if err = os.MkdirAll(dir, 0750); err != nil {
 		return err
 	}
 
+	var root *os.Root
+	if root, err = os.OpenRoot(dir); err != nil {
+		return err
+	}
+	defer func() { _ = root.Close() }()
+
 	var file *os.File
-	if file, err = os.Create(filename); err != nil {
+	if file, err = root.Create(filepath.Base(filename)); err != nil {
 		return err
 	}
 	defer func() { _ = file.Close() }()
