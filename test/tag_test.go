@@ -1,6 +1,7 @@
 package test_test
 
 import (
+	"encoding/json"
 	"errors"
 	"reflect"
 	"testing"
@@ -361,11 +362,21 @@ func TestUnmarshal(t *testing.T) {
 	}
 }
 
-func BenchmarkPrimeNumbers(b *testing.B) {
+func BenchmarkOXY(b *testing.B) {
 	input := []byte("{{Sub test??,------test},{Sub test??,------test}}")
 	output := new(structFields)
 	for i := 0; i < b.N; i++ {
 		if err := test.Unmarshal(input, output); err != nil {
+			panic(err)
+		}
+	}
+}
+
+func BenchmarkJSON(b *testing.B) {
+	input := []byte("{\"sub\":{\"str\":\"Sub test\",\"pstr\":\"test\"},\"psub\":{\"str\":\"Sub test\",\"pstr\":\"test\"}}")
+	output := new(structFields)
+	for i := 0; i < b.N; i++ {
+		if err := json.Unmarshal(input, output); err != nil {
 			panic(err)
 		}
 	}

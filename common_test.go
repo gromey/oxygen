@@ -90,8 +90,7 @@ func Test_bitSize(t *testing.T) {
 }
 
 func Test_isEmptyValue(t *testing.T) {
-	var a any
-	a = 77
+	a := 77
 	var b any
 
 	var tests = []struct {

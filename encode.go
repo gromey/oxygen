@@ -79,7 +79,9 @@ func (f *structFields[T]) encode(s *encodeState[T], v reflect.Value, wrap bool) 
 	var sep bool
 
 	if wrap {
-		s.Write(s.structOpener)
+		if _, err = s.Write(s.structOpener); err != nil {
+			return err
+		}
 	}
 
 	for _, s.field = range *f {
@@ -91,7 +93,9 @@ func (f *structFields[T]) encode(s *encodeState[T], v reflect.Value, wrap bool) 
 		}
 
 		if sep {
-			s.Write(s.valueSeparator)
+			if _, err = s.Write(s.valueSeparator); err != nil {
+				return err
+			}
 		}
 		sep = s.separate
 
@@ -109,7 +113,9 @@ func (f *structFields[T]) encode(s *encodeState[T], v reflect.Value, wrap bool) 
 	}
 
 	if wrap {
-		s.Write(s.structCloser)
+		if _, err = s.Write(s.structCloser); err != nil {
+			return err
+		}
 	}
 
 	return
