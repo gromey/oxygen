@@ -12,7 +12,7 @@
 To use the `oxygen` package, install it using:
 
 ```sh
-  go get github.com/gromey/oxygen@latest
+go get github.com/gromey/oxygen@latest
 ```
 
 ## Getting Started
@@ -20,7 +20,7 @@ To use the `oxygen` package, install it using:
 After you get the library, you must generate your type using the following command:
 
 ```sh
-  go run github.com/gromey/oxygen/cmd/generate -n=name
+go run github.com/gromey/oxygen/cmd/generate -n=name
 ```
 
 In this command, you must specify a name of your new formatter. The name must contain only letters and be as simple as possible.

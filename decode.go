@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
-	"sync"
+	"unsafe"
 )
 
 // Proper usage of a sync.Pool requires each entry to have approximately
@@ -27,7 +27,7 @@ func (e *engine[T]) Unmarshal(data []byte, v any) error {
 	}
 
 	s := e.newDecodeState()
-	defer putDecodeState(s)
+	defer e.putDecodeState(s)
 
 	s.data = append(s.data, data...)
 
@@ -38,30 +38,30 @@ func (e *engine[T]) Unmarshal(data []byte, v any) error {
 type decodeState[T any] struct {
 	*engine[T]
 	context[T]
-	*bytes.Buffer
-	data []byte // copy of input
+	buffer
+	fieldBuf field[T]
+	data     []byte // copy of input
 }
 
-var decodeStatePool sync.Pool
-
 func (e *engine[T]) newDecodeState() *decodeState[T] {
-	if p := decodeStatePool.Get(); p != nil {
+	if p := e.decStatePool.Get(); p != nil {
 		s := p.(*decodeState[T])
-		s.field = new(field[T])
+		s.fieldBuf = field[T]{}
+		s.field = &s.fieldBuf
 		s.err = nil
 		s.Reset()
 		s.data = s.data[:0]
 		return s
 	}
 
-	s := &decodeState[T]{engine: e, Buffer: new(bytes.Buffer), data: make([]byte, 0, 512)}
-	s.field = new(field[T])
+	s := &decodeState[T]{engine: e, data: make([]byte, 0, 512)}
+	s.field = &s.fieldBuf
 	return s
 }
 
-func putDecodeState[T any](s *decodeState[T]) {
+func (e *engine[T]) putDecodeState(s *decodeState[T]) {
 	if cap(s.data) <= maxSize {
-		decodeStatePool.Put(s)
+		e.decStatePool.Put(s)
 	}
 }
 
@@ -172,6 +172,12 @@ func unmarshalerDecoder[T any](s *decodeState[T], v reflect.Value) error {
 	return nil
 }
 
+// buffString converts bytes to string without allocation.
+// Safe only for transient use — the returned string must not be stored.
+func buffString(bs []byte) string {
+	return unsafe.String(unsafe.SliceData(bs), len(bs)) //nolint:gosec
+}
+
 func boolDecoder[T any](s *decodeState[T], v reflect.Value) error {
 	if err := s.Decode(s.field.name, s.field.tag, s.data, s); err != nil {
 		return err
@@ -179,7 +185,7 @@ func boolDecoder[T any](s *decodeState[T], v reflect.Value) error {
 	if s.Len() == 0 {
 		return nil
 	}
-	r, err := strconv.ParseBool(s.String())
+	r, err := strconv.ParseBool(buffString(s.Bytes()))
 	v.SetBool(r)
 	return err
 }
@@ -191,7 +197,7 @@ func intDecoder[T any](s *decodeState[T], v reflect.Value) error {
 	if s.Len() == 0 {
 		return nil
 	}
-	r, err := strconv.ParseInt(s.String(), 10, bitSize(v.Kind()))
+	r, err := strconv.ParseInt(buffString(s.Bytes()), 10, bitSize(v.Kind()))
 	v.SetInt(r)
 	return err
 }
@@ -203,7 +209,7 @@ func uintDecoder[T any](s *decodeState[T], v reflect.Value) error {
 	if s.Len() == 0 {
 		return nil
 	}
-	r, err := strconv.ParseUint(s.String(), 10, bitSize(v.Kind()))
+	r, err := strconv.ParseUint(buffString(s.Bytes()), 10, bitSize(v.Kind()))
 	v.SetUint(r)
 	return err
 }
@@ -215,7 +221,7 @@ func floatDecoder[T any](s *decodeState[T], v reflect.Value) error {
 	if s.Len() == 0 {
 		return nil
 	}
-	r, err := strconv.ParseFloat(s.String(), bitSize(v.Kind()))
+	r, err := strconv.ParseFloat(buffString(s.Bytes()), bitSize(v.Kind()))
 	v.SetFloat(r)
 	return err
 }
@@ -257,7 +263,9 @@ func bytesDecoder[T any](s *decodeState[T], v reflect.Value) error {
 	if s.Len() == 0 {
 		return nil
 	}
-	v.SetBytes(s.Bytes())
+	bs := make([]byte, s.Len())
+	copy(bs, s.Bytes())
+	v.SetBytes(bs)
 	return nil
 }
 

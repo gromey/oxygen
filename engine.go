@@ -88,6 +88,10 @@ type engine[T any] struct {
 	wrap, removeWrapper, separate, removeSeparator bool
 	structOpener, structCloser, valueSeparator     []byte
 	marshaller, unmarshaler                        reflect.Type
+	encStatePool                                   sync.Pool
+	decStatePool                                   sync.Pool
+	coderCache                                     sync.Map // map[reflect.Type]*coders[T]
+	fieldCache                                     sync.Map // map[reflect.Type]structFields[T]
 }
 
 type coders[T any] struct {
@@ -95,15 +99,12 @@ type coders[T any] struct {
 	decoderFunc[T]
 }
 
-var coderCache sync.Map // map[reflect.Type]*coders[T]
-
 // cachedCoders is like typeCoders but uses a cache to avoid repeated work.
 func (e *engine[T]) cachedCoders(t reflect.Type) *coders[T] {
-	if c, ok := coderCache.Load(t); ok {
+	if c, ok := e.coderCache.Load(t); ok {
 		return c.(*coders[T])
 	}
-
-	c, _ := coderCache.LoadOrStore(t, e.typeCoders(t))
+	c, _ := e.coderCache.LoadOrStore(t, e.typeCoders(t))
 	return c.(*coders[T])
 }
 
@@ -180,14 +181,12 @@ type field[T any] struct {
 
 type structFields[T any] []*field[T]
 
-var fieldCache sync.Map // map[reflect.Type]structFields[T]
-
 // cachedFields is like typeFields but uses a cache to avoid repeated work.
 func (e *engine[T]) cachedFields(t reflect.Type) structFields[T] {
-	if c, ok := fieldCache.Load(t); ok {
+	if c, ok := e.fieldCache.Load(t); ok {
 		return c.(structFields[T])
 	}
-	c, _ := fieldCache.LoadOrStore(t, e.typeFields(t))
+	c, _ := e.fieldCache.LoadOrStore(t, e.typeFields(t))
 	return c.(structFields[T])
 }
 
