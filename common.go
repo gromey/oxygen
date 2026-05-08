@@ -6,6 +6,30 @@ import (
 	"reflect"
 )
 
+type buffer struct {
+	b []byte
+}
+
+func (b *buffer) Write(p []byte) (int, error) {
+	b.b = append(b.b, p...)
+	return len(p), nil
+}
+
+func (b *buffer) WriteByte(c byte) error {
+	b.b = append(b.b, c)
+	return nil
+}
+
+func (b *buffer) WriteString(s string) (int, error) {
+	b.b = append(b.b, s...)
+	return len(s), nil
+}
+
+func (b *buffer) Bytes() []byte  { return b.b }
+func (b *buffer) Len() int       { return len(b.b) }
+func (b *buffer) Reset()         { b.b = b.b[:0] }
+func (b *buffer) String() string { return string(b.b) }
+
 var (
 	errExist = errors.New("exist")
 

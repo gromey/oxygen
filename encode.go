@@ -1,12 +1,10 @@
 package oxygen
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
-	"sync"
 )
 
 const marshalError = "encode data from"
@@ -15,35 +13,38 @@ const marshalError = "encode data from"
 // If v is nil, Marshal returns an encoder error.
 func (e *engine[T]) Marshal(v any) ([]byte, error) {
 	s := e.newEncodeState()
-	defer encodeStatePool.Put(s)
+	defer e.encStatePool.Put(s)
 
 	if s.marshal(v); s.err != nil {
 		return nil, s.err
 	}
 
-	return append([]byte(nil), s.Bytes()...), nil
+	buf := s.Bytes()
+	out := make([]byte, len(buf))
+	copy(out, buf)
+	return out, nil
 }
 
 type encodeState[T any] struct {
 	*engine[T]
 	context[T]
-	*bytes.Buffer // accumulated output
-	scratch       [64]byte
+	buffer
+	fieldBuf field[T]
+	scratch  [64]byte
 }
 
-var encodeStatePool sync.Pool
-
 func (e *engine[T]) newEncodeState() *encodeState[T] {
-	if p := encodeStatePool.Get(); p != nil {
+	if p := e.encStatePool.Get(); p != nil {
 		s := p.(*encodeState[T])
-		s.field = new(field[T])
+		s.fieldBuf = field[T]{}
+		s.field = &s.fieldBuf
 		s.err = nil
 		s.Reset()
 		return s
 	}
 
-	s := &encodeState[T]{engine: e, Buffer: new(bytes.Buffer)}
-	s.field = new(field[T])
+	s := &encodeState[T]{engine: e}
+	s.field = &s.fieldBuf
 	return s
 }
 
@@ -122,11 +123,10 @@ func (f *structFields[T]) encode(s *encodeState[T], v reflect.Value, wrap bool) 
 }
 
 func marshallerEncoder[T any](s *encodeState[T], v reflect.Value) error {
-	tmp := reflect.ValueOf(v.Interface())
-	v = reflect.New(v.Type())
-	v.Elem().Set(tmp)
+	pv := reflect.New(v.Type())
+	pv.Elem().Set(v)
 
-	f, ok := s.IsMarshaller(v)
+	f, ok := s.IsMarshaller(pv)
 	if !ok {
 		return nil
 	}
@@ -136,23 +136,23 @@ func marshallerEncoder[T any](s *encodeState[T], v reflect.Value) error {
 		return err
 	}
 
-	return s.Encode(s.field.name, s.field.tag, p, s.Buffer)
+	return s.Encode(s.field.name, s.field.tag, p, &s.buffer)
 }
 
 func boolEncoder[T any](s *encodeState[T], v reflect.Value) error {
-	return s.Encode(s.field.name, s.field.tag, strconv.AppendBool(s.scratch[:0], v.Bool()), s.Buffer)
+	return s.Encode(s.field.name, s.field.tag, strconv.AppendBool(s.scratch[:0], v.Bool()), &s.buffer)
 }
 
 func intEncoder[T any](s *encodeState[T], v reflect.Value) error {
-	return s.Encode(s.field.name, s.field.tag, strconv.AppendInt(s.scratch[:0], v.Int(), 10), s.Buffer)
+	return s.Encode(s.field.name, s.field.tag, strconv.AppendInt(s.scratch[:0], v.Int(), 10), &s.buffer)
 }
 
 func uintEncoder[T any](s *encodeState[T], v reflect.Value) error {
-	return s.Encode(s.field.name, s.field.tag, strconv.AppendUint(s.scratch[:0], v.Uint(), 10), s.Buffer)
+	return s.Encode(s.field.name, s.field.tag, strconv.AppendUint(s.scratch[:0], v.Uint(), 10), &s.buffer)
 }
 
 func floatEncoder[T any](s *encodeState[T], v reflect.Value) error {
-	return s.Encode(s.field.name, s.field.tag, strconv.AppendFloat(s.scratch[:0], v.Float(), 'g', -1, bitSize(v.Kind())), s.Buffer)
+	return s.Encode(s.field.name, s.field.tag, strconv.AppendFloat(s.scratch[:0], v.Float(), 'g', -1, bitSize(v.Kind())), &s.buffer)
 }
 
 //func arrayEncoder[T any](s *encodeState[T], v reflect.Value) error {
@@ -175,7 +175,7 @@ func pointerEncoder[T any](s *encodeState[T], v reflect.Value) error {
 }
 
 func bytesEncoder[T any](s *encodeState[T], v reflect.Value) error {
-	return s.Encode(s.field.name, s.field.tag, v.Bytes(), s.Buffer)
+	return s.Encode(s.field.name, s.field.tag, v.Bytes(), &s.buffer)
 }
 
 //func sliceEncoder[T any](s *encodeState[T], v reflect.Value) error {
@@ -183,12 +183,12 @@ func bytesEncoder[T any](s *encodeState[T], v reflect.Value) error {
 //}
 
 func stringEncoder[T any](s *encodeState[T], v reflect.Value) error {
-	return s.Encode(s.field.name, s.field.tag, append(s.scratch[:0], v.String()...), s.Buffer)
+	return s.Encode(s.field.name, s.field.tag, append(s.scratch[:0], v.String()...), &s.buffer)
 }
 
 func structEncoder[T any](s *encodeState[T], v reflect.Value) error {
 	f := s.cachedFields(v.Type())
-	return f.encode(s, reflect.ValueOf(v.Interface()), s.wrap)
+	return f.encode(s, v, s.wrap)
 }
 
 func unsupportedTypeEncoder[T any](s *encodeState[T], _ reflect.Value) error {
